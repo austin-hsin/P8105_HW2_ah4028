@@ -5,13 +5,14 @@ date: "2023-09-28"
 output: github_document
 ---
 
-## Problem 0 
+## Problem 0 - Setup
 
-Setup code to load `tidyverse` library
+Setup code to load `tidyverse` and `readxl` library
 
 ```{r setup, message=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
+library(readxl)
 ```
 
 ## Problem 1 - Data Import, Cleaning, Merging
@@ -67,21 +68,58 @@ unemployment_data = read.csv(file = "./fivethirtyeight_datasets/unemployment.csv
 
 # Merging pols_month_data, snp_data, and unemployment_data
 pols_snp_data = full_join(snp_data, pols_month_data, by = c("year", "month"))
-hw2_data = full_join(pols_snp_data, unemployment_data, by = c("year", "month"))
+five_thirty_eight_merged_data = full_join(pols_snp_data, unemployment_data, by = c("year", "month"))
+five_thirty_eight_merged_data
 ```
 
-As a note for whoever is grading this, inline with my github commits, I had solved problem 1 my own way prior to the release of the solution. I have kept it as such as my cleaning and merging produced a similar dataset, just with different naming conventions.
+As a note for whoever is grading this, inline with my github commits, I had solved problem 1 my own way prior to the release of the solution. I have kept it as such as my cleaning and merging produced a similar dataset with different naming conventions.
 
-The `pols_month` dataset contains data regarding the number of politicians based on party affiliation on a monthly basis from 1947 to 2015.
+The `pols_month` dataset contains data regarding the number of politicians, including governors, senators, and president based on party affiliation on a monthly basis from 1947 to 2015.
 The `snp` dataset contains data regarding the monthly closing values of the S&P 500 stock market index from 1950 to 2015.
 The `unemployment` dataset contains data regarding the unemployment rate at the end of each month from 1948 to 2015.
 
+The resulting merged dataset, `five_thirty_eight_merged_data has 11 columns and 828 rows and has a complete data year range from 1950 to 2015. Prior to January 1950 and after July 2015, there are a range of missing values from the S&P500 close to the unemployment percentage.
 
-
-## Problem 2
-
-
-```{r}
-
+## Problem 2 - Trash Wheel Dataset
+```{r, Mr. Trash Wheel}
+#Import and cleaning of Mr. Trash Wheel data
+mr.trash_wheel_data = read_excel("./202309 Trash Wheel Collection Data.xlsx", 
+sheet = 1, 
+range = ("A2:N586"),
+col_types = c("numeric","text","numeric","date","numeric","numeric","numeric","numeric","numeric","numeric","numeric","numeric","numeric","text"))|>
+  janitor::clean_names()|>
+  mutate(homes_powered_new = weight_tons*16.67, #Adding new variables
+       name = "Mr. Trash Wheel")
 ```
 
+Here we imported and cleaned the Mr. Trash Wheel data from sheet 1 of the Trash Wheel Collection Data as well as included a new variable `homes_powered_new`, based on the homes powered note, and `ID`, corresponding to its sheet number.
+
+```{r, Professor Trash Wheel}
+#Import and cleaning of Professor Trash Wheel data
+professor_trash_wheel_data = read_excel("./202309 Trash Wheel Collection Data.xlsx", 
+sheet = 2, 
+range = ("A2:M108"),
+col_types = c("numeric","text","numeric","date","numeric","numeric","numeric","numeric","numeric","numeric","numeric","numeric","text"))|>
+  janitor::clean_names()|>
+  mutate(homes_powered_new = weight_tons*16.67, #Adding new variables
+       name = "Professor Trash Wheel")
+```
+
+Here we similarly imported and cleaned the Professor Trash Wheel data from sheet 2 of the Trash Wheel Collection Data as well as included a new variable `homes_powered_new`, based on the homes powered note, and `ID`, corresponding to its sheet number.
+
+```{r, Gywnnda Trash Wheel}
+#Import and cleaning of Gywnnda Trash Wheel data
+gywnnda_trash_wheel_data = read_excel("./202309 Trash Wheel Collection Data.xlsx", 
+sheet = 4, 
+range = ("A2:L157"),
+col_types = c("numeric","text","numeric","date","numeric","numeric","numeric","numeric","numeric","numeric","numeric", "text"))|>
+  janitor::clean_names()|>
+  mutate(homes_powered_new = weight_tons*16.67, #Adding new variables
+       name = "Gywnnda Trash Wheel")
+```
+
+Here we similarly imported and cleaned the Gywnnda Wheel data from sheet 4 of the Trash Wheel Collection Data as well as included a new variable `homes_powered_new`, based on the homes powered note, and `name`.
+
+```{r, Trash Wheel Tidy}
+trash_wheel_tidy = bind_rows(mr.trash_wheel_data, professor_trash_wheel_data, gywnnda_trash_wheel_data)
+```
