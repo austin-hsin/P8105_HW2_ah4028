@@ -69,7 +69,6 @@ unemployment_data = read.csv(file = "./fivethirtyeight_datasets/unemployment.csv
 # Merging pols_month_data, snp_data, and unemployment_data
 pols_snp_data = full_join(snp_data, pols_month_data, by = c("year", "month"))
 five_thirty_eight_merged_data = full_join(pols_snp_data, unemployment_data, by = c("year", "month"))
-five_thirty_eight_merged_data
 ```
 
 As a note for whoever is grading this, inline with my github commits, I had solved problem 1 my own way prior to the release of the solution. I have kept it as such as my cleaning and merging produced a similar dataset with different naming conventions.
@@ -81,7 +80,10 @@ The `unemployment` dataset contains data regarding the unemployment rate at the 
 The resulting merged dataset, `five_thirty_eight_merged_data has 11 columns and 828 rows and has a complete data year range from 1950 to 2015. Prior to January 1950 and after July 2015, there are a range of missing values from the S&P500 close to the unemployment percentage.
 
 ## Problem 2 - Trash Wheel Dataset
-```{r, Mr. Trash Wheel}
+
+Importing and cleaning of 3 different trash wheel datasets
+
+```{r, Mr. Trash Wheel, warning=FALSE}
 #Import and cleaning of Mr. Trash Wheel data
 mr.trash_wheel_data = read_excel("./202309 Trash Wheel Collection Data.xlsx", 
 sheet = 1, 
@@ -92,7 +94,7 @@ col_types = c("numeric","text","numeric","date","numeric","numeric","numeric","n
        name = "Mr. Trash Wheel")
 ```
 
-Here we imported and cleaned the Mr. Trash Wheel data from sheet 1 of the Trash Wheel Collection Data as well as included a new variable `homes_powered_new`, based on the homes powered note, and `ID`, corresponding to its sheet number.
+Here we imported and cleaned the Mr. Trash Wheel data from sheet 1 of the Trash Wheel Collection Data as well as included a new variable `homes_powered_new`, based on the homes powered note, and `name`.
 
 ```{r, Professor Trash Wheel}
 #Import and cleaning of Professor Trash Wheel data
@@ -105,7 +107,7 @@ col_types = c("numeric","text","numeric","date","numeric","numeric","numeric","n
        name = "Professor Trash Wheel")
 ```
 
-Here we similarly imported and cleaned the Professor Trash Wheel data from sheet 2 of the Trash Wheel Collection Data as well as included a new variable `homes_powered_new`, based on the homes powered note, and `ID`, corresponding to its sheet number.
+Here we similarly imported and cleaned the Professor Trash Wheel data from sheet 2 of the Trash Wheel Collection Data as well as included a new variable `homes_powered_new`, based on the homes powered note, and `name`.
 
 ```{r, Gywnnda Trash Wheel}
 #Import and cleaning of Gywnnda Trash Wheel data
@@ -118,8 +120,112 @@ col_types = c("numeric","text","numeric","date","numeric","numeric","numeric","n
        name = "Gywnnda Trash Wheel")
 ```
 
-Here we similarly imported and cleaned the Gywnnda Wheel data from sheet 4 of the Trash Wheel Collection Data as well as included a new variable `homes_powered_new`, based on the homes powered note, and `name`.
+Here we similarly imported and cleaned the Gywnnda Trash Wheel data from sheet 4 of the Trash Wheel Collection Data as well as included a new variable `homes_powered_new`, based on the homes powered note, and `name`.
+
+# Merged Trash Wheel Dataset
+
+Merging all three trash wheel datasets and describing the resulting dataset
 
 ```{r, Trash Wheel Tidy}
+#Bind Rows all three trash wheel data sets
 trash_wheel_tidy = bind_rows(mr.trash_wheel_data, professor_trash_wheel_data, gywnnda_trash_wheel_data)
+```
+
+Resulting `trash_wheel_tidy` dataset has 16 columns and 845 rows that includes variables such as `dumpster`, `date`, `weight` and `volume` of trash, multiple varieties of trash types, `name` identifier for each trash wheel, and the new `powered_homes_new` variable that multiplies weight of trash by (500/30) = 16.67.
+
+Total trash weight collected by Professor Trash Wheel is `r sum(pull(professor_trash_wheel_data, weight_tons))`.
+
+Total number of cigarette butts collected by Gywnnda Trash Wheel in July 2021 is `r sum(pull(filter(gywnnda_trash_wheel_data, month == "July", year == "2021"), cigarette_butts))`.
+
+## Problem 3 - MCI Datasets
+
+Importing and Cleaning of Baseline MCI and Amyloid MCI datasets
+
+```{r, MCI_baseline}
+#Importing MCI Baseline Data and cleaning names
+MCI_baseline_data = read.csv("./data_mci/MCI_baseline.csv")|>
+  janitor::clean_names()|>
+  rename(
+    ID = x,
+    Baseline_Age = `age_at_the_study_baseline`,
+    Sex = `x1_male_0_female`,
+    APOE4 = `x1_apoe4_carrier_0_apoe4_non_carrier`,
+    MCI_Onset = `age_at_the_onset_of_mci_missing_if_a_subject_remains_mci_free_during_the_follow_up_period`,
+        )
+```
+
+There were `r nrow(MCI_baseline_data)` participants that were recruited in total.
+
+# Tidying MCI_baseline_data
+
+Tidying MCI_baseline_data and answering questions about the dataset
+
+```{r, MCI_baseline_tidy, warning = FALSE}
+#Recoding variables and removing those without age of MCI onset
+MCI_baseline_tidy_data = MCI_baseline_data|>
+  mutate(Sex = recode(Sex, 
+                          "1" = "Male", 
+                          "0" = "Female"))|>
+  mutate(APOE4= recode(APOE4,
+                       `1` = "Carrier",
+                       `0` = "Non-Carrier"))|>
+  mutate(Baseline_Age = as.numeric(Baseline_Age))|>
+  mutate(MCI_Onset = as.integer(MCI_Onset))|>
+  mutate(ID = as.numeric(ID))|>
+  filter(MCI_Onset != ".")
+```
+
+After removing those without a MCI age of onset value, there are `r nrow(MCI_baseline_tidy_data)` subjects with MCI.
+
+Average baseline age is `r round(mean(pull(MCI_baseline_tidy_data, MCI_Onset)), digits = 2)`
+
+The proportion of women who are APOE4 carriers is `r round(nrow(filter(MCI_baseline_tidy_data, Sex == "Female", APOE4 == "Carrier"))/nrow(filter(MCI_baseline_tidy_data, Sex == "Female")),digits=2)`
+
+# MCI Amyloid Dataset
+
+Importing and tidying amyloid dataset
+
+```{r}
+MCI_amyloid_data = read_csv("./data_mci/mci_amyloid.csv", skip=1)|>
+  janitor::clean_names()|>
+  drop_na()|>
+  rename(ID = study_id)|>
+  mutate(ID = as.numeric(ID))
+```
+
+After removing missing values, the number of observations is `r nrow(MCI_amyloid_data)`.
+
+# Merging Tidy MCI Baseline and MCI Amyloid Datasets
+
+Merging both datasets by `ID`
+
+```{r}
+anti_combine_baseline_amyloid = anti_join(MCI_baseline_tidy_data, MCI_amyloid_data, by = "ID")
+
+anti_combine_amyloid_baseline = anti_join(MCI_amyloid_data, MCI_baseline_tidy_data, by = "ID")
+```
+
+`r nrow(anti_combine_baseline_amyloid)` participants are within the MCI baseline dataset, and `r nrow(anti_combine_amyloid_baseline)` participants are within the MCI amyloid dataset. 
+
+```{r}
+MCI_combine_baseline_amyloid_data = 
+  inner_join(MCI_baseline_tidy_data, MCI_amyloid_data, by = "ID")
+```
+
+After combining the tidied baseline and amyloid data, we have full data on `r nrow(MCI_combine_baseline_amyloid_data)` participants. 
+
+The average age of those in the full data was `r round(mean(pull(MCI_combine_baseline_amyloid_data, Baseline_Age)), digits=2)` years old.
+
+The average MCI onset age was `r round(mean(pull(MCI_combine_baseline_amyloid_data, MCI_Onset)), digits=2)` years old. 
+
+The number of female subjects is `r nrow(filter(MCI_combine_baseline_amyloid_data, Sex == "Female"))`.
+
+The proportion of APOE4 carriers is `r round(nrow(filter(MCI_combine_baseline_amyloid_data, APOE4 == "Carrier")) / nrow(MCI_combine_baseline_amyloid_data), digits=2)`. 
+
+# Exporting combined MCI dataset
+
+Exporting MCI_combine_baseline_amyloid_data
+
+```{r MCI_combine_baseline_amyloid_data, message=FALSE}
+write_csv(MCI_combine_baseline_amyloid_data, "./data_mci/MCI_combine_baseline_amyloid.csv")
 ```
